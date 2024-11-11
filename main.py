@@ -48,47 +48,7 @@ class DianshangDatabase(Database):
     def __init__(self, database_name="test"):
         # 调用父类的构造函数
         super(DianshangDatabase, self).__init__(database_name)
-        # 创建sql函数
-        # self.__addOrderFunc()
 
-#     def __addOrderFunc(self):
-#         # 创建一个sql函数，用于向订单表中添加订单信息
-#         # 首先删除之前创建的add_order函数
-#         self.cursor.execute("DROP PROCEDURE IF EXISTS add_order;")
-#         # 该函数需要传入订单ID、商品ID、店铺ID、用户ID、支付方式作为参数，并更新顾客表中的销售额  默认订单状态为Pending 默认购买数量为1
-#         # 成功执行该函数后，返回'Transaction completed successfully'
-#         # 失败执行该函数后，返回'Transaction failed and rolled back. Customer ID: {customer_id} caused an error.'
-#         sql = """
-# CREATE PROCEDURE add_order(
-#     IN orderID INT,
-#     IN storeID INT,
-#     IN goodID INT,
-#     IN userID INT,
-#     IN pay VARCHAR(100)
-# )
-# BEGIN
-#     DECLARE EXIT HANDLER FOR SQLEXCEPTION
-#     BEGIN
-#         ROLLBACK;
-#         SELECT CONCAT('Add order failed and rolled back. Customer ID: ', userID, ' caused an error.') AS result;
-#     END;
-#
-#     START TRANSACTION;
-#
-#     INSERT INTO goods_order (order_id, store_id, goods_id, user_id, pay_type, order_status)
-#     VALUES (orderID, storeID, goodID, userID, pay, 'Pending');
-#
-#     UPDATE goods
-#     SET monthly_sales_volume = monthly_sales_volume + (price * 1)
-#     WHERE store_id = storeID
-#     AND goods_id = goodID;
-#
-#     COMMIT;
-#
-#     SELECT 'Add order successfully' AS result;
-# END;"""
-#         self.cursor.execute(sql)
-#
     def addOrder(self, order):
         # 向订单表中添加订单信息
         if isinstance(order, tuple) and len(order) == 5:
@@ -112,15 +72,4 @@ if __name__ == '__main__':
     db = DianshangDatabase()
     data = (28, 1, 1, 1, 'alipay')
     print(db.addOrder(data))
-    # db.cursor.execute("SELECT * FROM goods_order;")
-    # print(db.cursor.fetchall())
-    # db.updateColumns()
-    # print(db.table_dict)
-    # print(db.table_dict['customer'])
-    # print(db.table_dict['customer_order'])
-    # db.cursor.execute("DROP PROCEDURE IF EXISTS add_order;")
-    # db.cursor.execute("DROP PROCEDURE IF EXISTS add_order;")
-    # db.addOrderFunc()
-    # print(db.addOrder(('Laptop', 1000.00, 1, 6)))
-    # print(db.getTables())
-    # print(db.getColumns("customer"))
+
