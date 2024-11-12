@@ -9,13 +9,12 @@ CREATE TABLE `goods`(
   `goods_id` int NOT NULL AUTO_INCREMENT,
   `goods_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `category` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `price` DECIMAL(10, 2) DEFAULT NULL,
+  `price` DECIMAL(10, 2) NOT NULL,
   `monthly_sales_volume` int NOT NULL,
   `store_id` int NOT NULL,
   PRIMARY KEY(`goods_id`),
   CONSTRAINT `fk_goods_store_id` FOREIGN KEY (`store_id`) REFERENCES `store`(`store_id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 CREATE TABLE `user`(
   `user_id` int NOT NULL AUTO_INCREMENT,
@@ -29,8 +28,6 @@ CREATE TABLE `goods_order`(
   `goods_order_id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `pay_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `order_status` ENUM('已付款', '已发货', '已送达') NOT NULL,
-  `tracking_num` VARCHAR(50) DEFAULT NULL,
   `total_consumption` DECIMAL(10, 2) DEFAULT NULL,
   PRIMARY KEY(`goods_order_id`),
   CONSTRAINT `fk_goods_order_user_id` FOREIGN KEY (`user_id`) REFERENCES `user`(`user_id`) ON DELETE CASCADE
@@ -41,14 +38,15 @@ CREATE TABLE `order_details`(
   `goods_order_id` int NOT NULL,
   `store_id` int NOT NULL,
   `goods_id` int NOT NULL,
-  `price` DECIMAL(10, 2) DEFAULT NULL,
+  `price` DECIMAL(10, 2) NOT NULL,
   `quantity` int DEFAULT NULL, 
+  `order_status` ENUM('已付款', '已发货', '已送达','已取消') NOT NULL,
+  `tracking_num` VARCHAR(50) DEFAULT NULL,
   PRIMARY KEY(`order_details_id`),
   CONSTRAINT `fk_order_details_goods_order_id` FOREIGN KEY (`goods_order_id`) REFERENCES `goods_order`(`goods_order_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_order_details_store_id` FOREIGN KEY (`store_id`) REFERENCES `store`(`store_id`) ON DELETE CASCADE,
   CONSTRAINT `fk_order_details_goods_id` FOREIGN KEY (`goods_id`) REFERENCES `goods`(`goods_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 
 -- 插入商家信息
 INSERT INTO `store` (`store_name`, `store_type`) VALUES
@@ -90,47 +88,27 @@ INSERT INTO `goods` (`goods_name`, `category`, `price`, `monthly_sales_volume`, 
 ('吸尘器', '家居用品', 999.99, 25, 5);
 
 -- 插入订单信息
-INSERT INTO `goods_order` (`user_id`, `pay_type`, `order_status`, `tracking_num`, `total_consumption`) VALUES
-(1, '信用卡', '已付款', '45857245', 1560.00),
-(2, '支付宝', '已发货', '91324857', 980.50),
-(3, '微信支付', '已送达', '60219485', 620.20),
-(4, '信用卡', '已付款', '81390572', 330.10),
-(5, '支付宝', '已发货', '27405816', 450.30),
-(6, '微信支付', '已送达', '75930241', 750.75),
-(7, '信用卡', '已付款', '16593827', 1200.00),
-(8, '支付宝', '已发货', '48620317', 890.90),
-(9, '微信支付', '已送达', '35904128', 640.20),
-(10, '信用卡', '已付款', '29504738', 1050.10),
-(11, '支付宝', '已发货', '48750291', 950.50),
-(12, '微信支付', '已送达', '85037294', 300.30),
-(13, '信用卡', '已付款', '90314752', 720.25),
-(14, '支付宝', '已发货', '67520139', 1300.10),
-(15, '微信支付', '已送达', '92058431', 420.90),
-(16, '信用卡', '已付款', '34750862', 620.80),
-(17, '支付宝', '已发货', '15873920', 780.00),
-(18, '微信支付', '已送达', '97215084', 560.40),
-(19, '信用卡', '已付款', '45720913', 1110.70),
-(20, '支付宝', '已发货', '86572094', 670.60);
+INSERT INTO `goods_order` (`user_id`, `pay_type`, `total_consumption`) VALUES
+(1, '信用卡', 5999.98),
+(2, '支付宝', 1999.95),
+(3, '微信支付', 990.80),
+(4, '信用卡', 2399.95),
+(5, '支付宝', 1799.95),
+(6, '微信支付', 2899.95),
+(7, '信用卡', 2499.97),
+(8, '支付宝', 1799.94),
+(9, '微信支付', 2900.90),
+(10, '信用卡', 2499.97);
 
-
-INSERT INTO `order_details` (`goods_order_id`, `store_id`, `goods_id`, `price`, `number`) VALUES
-(1, 1, 1, 999.99, 2), (1, 1, 2, 199.99, 1),
-(2, 2, 4, 99.99, 3), (2, 2, 5, 199.99, 2),
-(3, 3, 7, 4.99, 10), (3, 3, 8, 2.99, 20), (3, 3, 9, 8.99, 5),
-(4, 4, 10, 49.99, 2), (4, 4, 12, 59.99, 3),
-(5, 5, 13, 299.99, 1), (5, 5, 14, 699.99, 1),
-(6, 1, 1, 999.99, 1), (6, 1, 3, 199.99, 4),
-(7, 2, 5, 199.99, 3), (7, 2, 6, 399.99, 1),
-(8, 3, 7, 4.99, 30), (8, 3, 9, 8.99, 5),
-(9, 4, 10, 49.99, 4), (9, 4, 11, 89.99, 1),
-(10, 5, 13, 299.99, 2), (10, 5, 15, 999.99, 1),
-(11, 1, 2, 199.99, 5), (11, 1, 3, 199.99, 1),
-(12, 2, 5, 199.99, 2), (12, 2, 6, 399.99, 1),
-(13, 3, 7, 4.99, 15), (13, 3, 8, 2.99, 25),
-(14, 4, 11, 89.99, 3), (14, 4, 12, 59.99, 2),
-(15, 5, 13, 299.99, 1), (15, 5, 15, 999.99, 1),
-(16, 1, 1, 999.99, 2), (16, 1, 2, 199.99, 1),
-(17, 2, 4, 99.99, 4), (17, 2, 5, 199.99, 2),
-(18, 3, 8, 2.99, 30), (18, 3, 9, 8.99, 10),
-(19, 4, 10, 49.99, 2), (19, 4, 12, 59.99, 4),
-(20, 5, 13, 299.99, 1), (20, 5, 15, 999.99, 1);
+--插入订单详细信息
+INSERT INTO `order_details` (`goods_order_id`, `store_id`, `goods_id`, `price`, `quantity`, `order_status`, `tracking_num`) VALUES
+(1, 1, 1, 9999.99, 1, '已付款', ''),
+(2, 2, 4, 99.99, 2, '已发货', '91324857'),(2, 2, 5, 199.99, 2, '已发货', '91324857'),
+(3, 3, 7, 4.99, 30, '已送达', '60219485'),(3, 3, 8, 2.99, 20, '已送达', '60219485'),
+(4, 1, 1, 9999.99, 1, '已付款', ''),(4, 1, 3, 199.99, 2, '已付款', ''),
+(5, 2, 5, 199.99, 3, '已发货', '27405816'),(5, 2, 6, 399.99, 1, '已发货', '27405816'),
+(6, 1, 1, 9999.99, 1, '已送达', '75930241'),(6, 1, 2, 6999.99, 1, '已送达', '75930241'),(6, 3, 7, 4.99, 1, '已送达', '75930241'),
+(7, 2, 4, 99.99, 3, '已付款', ''),(7, 2, 5, 199.99, 2, '已付款', ''),
+(8, 1, 1, 9999.99, 1, '已发货', '48620317'),(8, 4, 10, 49.99, 2, '已发货', '48620317'),
+(9, 3, 7, 4.99, 50, '已送达', '35904128'),(9, 4, 10, 49.99, 30, '已送达', '35904128'),
+(10, 1, 1, 9999.99, 2, '已付款', ''),(10, 1, 3, 199.99, 3, '已付款', '');
