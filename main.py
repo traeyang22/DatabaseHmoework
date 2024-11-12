@@ -42,7 +42,6 @@ class Database:
             # self.cursor.close()
             self.dbconn.close()
 
-
 class DianshangDatabase(Database):
     # 电商数据库类，继承自Database类
     def __init__(self, database_name="test"):
@@ -57,9 +56,21 @@ class DianshangDatabase(Database):
             return self.cursor.fetchone()
         return ("Error: Invalid order format.",)
 
-    def changerOrderStatusFunc(self):
-        # 创建一个sql函数，用于更新订单状态
-        pass
+    def editOrderStatusFunc(self, order):
+        # 创建一个sql函数，用于更新订单发货状态
+        if isinstance(order, tuple) and len(order) == 2:
+            print(f"CALL edit_order{order};")
+            self.cursor.execute(f"CALL edit_order{order};")
+            return self.cursor.fetchone()
+        return ("Error: Invalid order format.",)
+
+    def finishOrderFunc(self, orderID):
+        # 创建一个sql函数，用于更新订单完成状态
+        if isinstance(orderID, int):
+            print(f"CALL finish_order({orderID});")
+            self.cursor.execute(f"CALL finish_order({orderID});")
+            return self.cursor.fetchone()
+        return ("Error: Invalid order format.",)
 
     def __del__(self):
         # # 删掉add_order函数
@@ -70,6 +81,9 @@ class DianshangDatabase(Database):
 
 if __name__ == '__main__':
     db = DianshangDatabase()
-    data = (28, 1, 1, 1, 'alipay')
-    print(db.addOrder(data))
-
+    # data = (100, 1, 1, 1, 'alipay')
+    # print(db.addOrder(data))
+    # data = (101, 164513)
+    # print(db.editOrderStatusFunc(data))
+    # data = 100
+    # print(db.finishOrderFunc(data))
