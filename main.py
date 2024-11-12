@@ -7,12 +7,12 @@ class Database:
         self.db = database_name  # 数据库名称
         # 连接数据库
         self.dbconn = mysql.connector.connect(
-            host="",  # 数据库主机地址
-            port="",  # 数据库端口号
-            user="",  # 数据库用户名
-            passwd="",  # 数据库密码
+            host="127.0.0.1",  # 数据库主机地址
+            port="3306",  # 数据库端口号
+            user="root",  # 数据库用户名
+            passwd="mysql",  # 数据库密码
             database=self.db,
-            auth_plugin="mysql_native_password"
+            # auth_plugin="mysql_native_password"
         )
         # 创建游标
         self.cursor = self.dbconn.cursor()
@@ -81,9 +81,9 @@ class DianshangDatabase(Database):
 
 if __name__ == '__main__':
     db = DianshangDatabase()
-    # data = (100, 1, 1, 1, 'alipay')
-    # print(db.addOrder(data))
-    # data = (101, 164513)
-    # print(db.editOrderStatusFunc(data))
-    # data = 100
-    # print(db.finishOrderFunc(data))
+    data = (101, 1, 1, 1, 'alipay')
+    print(db.addOrder(data))
+    data = (101, 164513)
+    print(db.editOrderStatusFunc(data))
+    data = 100
+    print(db.finishOrderFunc(data))
