@@ -1,3 +1,5 @@
+CREATE DATABASE test;
+
 CREATE TABLE `store`(
   `store_id` int NOT NULL AUTO_INCREMENT,
   `store_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
