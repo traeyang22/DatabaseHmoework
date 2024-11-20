@@ -1,4 +1,4 @@
-from sqlClass import DianshangDatabase
+from sqlclass import DianshangDatabase
 
 if __name__ == '__main__':
     sql = DianshangDatabase("test")
