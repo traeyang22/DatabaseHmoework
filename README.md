@@ -1,5 +1,2 @@
-**安装运行库**
-`pip install mysql-connector-python`
-
-**E-R图**
+pip install mysql-connector-python
 ![alt text](ER.png)
