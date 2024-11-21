@@ -55,6 +55,12 @@ class DianshangDatabase(Database):
     # 电商数据库类，继承自Database类
     # 这里主要实现电商数据库相关的操作，如添加订单、更新订单状态、完成订单等
 
+    def __init__(self, database_name):
+        super().__init__(database_name)
+        # 定义变量user_dict，用于存储用户信息
+        # {id: (name, gender, age)}
+        self.user_dict = self.queryUserInfo()
+
     # 订单相关操作，包括添加订单、更新订单状态、完成订单、查询订单、退单等
     def addOrder(self, order):
         # 向订单表中添加订单信息
@@ -72,12 +78,11 @@ class DianshangDatabase(Database):
             return self.cursor.fetchone()
         return ("Error: Invalid order format.",)
 
-    def finishOrderFunc(self, orderID):
+    def finishOrderFunc(self, orderID: int):
         # 创建一个sql函数，用于更新订单完成状态
-        if isinstance(orderID, int):
-            print(f"CALL finish_order({orderID});")
-            self.cursor.execute(f"CALL finish_order({orderID});")
-            return self.cursor.fetchone()
+        print(f"CALL finish_order({orderID});")
+        self.cursor.execute(f"CALL finish_order({orderID});")
+        return self.cursor.fetchone()
         return ("Error: Invalid order format.",)
 
     def queryOrderFunc(self, orderID):
@@ -117,16 +122,61 @@ class DianshangDatabase(Database):
         pass
 
 
-    # 会员相关操作，包括添加会员、更新会员信息、查询会员信息等
-    def addMember(self, member):
-        # 向会员表中添加会员信息
-        pass
+    # 用户相关操作，包括添加用户、删除用户、更新用户信息、查询用户信息等
+    def addUser(self, user: tuple):
+        user_id = 0
+        # 向用户表中添加用户信息
+        if len(user) == 3:
+            sql = "CALL add_user(%s, %s, %s)"
+            self.cursor.execute(sql, user)
+            res = self.cursor.fetchone()
+            print(res)
+            user_id = res[0].split(" ")[-1]
+        return user_id
 
-    def editMemberInfoFunc(self, member):
-        # 创建一个sql函数，用于更新会员信息
-        pass
+    def delUser(self, user: int):
+        # 向用户表中删除用户信息
+        sql =f"DELETE FROM user WHERE user_id=%s;"
+        self.cursor.execute(sql, (user,))
+        self.dbconn.commit()
+        print(f"delete user: {user}")
 
-    def queryMemberInfoFunc(self, memberID):
-        # 创建一个sql函数，用于查询会员信息
-        pass
+
+    def editUserInfo(self, user_id, name=None, gender=None, age=None):
+        # 向用户表中更新用户信息
+        if name or gender or age:
+            sql=f"CALL editUserInfo(%s, %s, %s, %s)"
+            self.cursor.execute(sql, (user_id, name, gender, age))
+            res = self.cursor.fetchone()
+            # print(res)
+            return res[0]
+        return "Nothing to update."
+
+
+    def __updataUserDict(self):
+        # 查询实现：查询所有用户信息存入字典，在py端进行处理后返回给用户
+        # 该函数为更新用户字典
+        self.cursor.execute("SELECT * FROM user")
+        res = self.cursor.fetchall()
+        self.user_dict = {user[0]: user[1:] for user in res}
+        return self.user_dict
+
+    def queryUserInfo(self, user_id=None, name=None, gender=None, age=None):
+        # 查询用户信息
+        resList = []
+        if user_id or name or gender or age:
+            self.__updataUserDict()
+            for key, value in self.user_dict.items():
+                if user_id is not None and key != user_id:
+                    continue
+                if name is not None and value[0] != name:
+                    continue
+                if gender is not None and value[1] != gender:
+                    continue
+                if age is not None and value[2] != age:
+                    continue
+                resList.append((key,) + value)
+        return resList
+
+
 

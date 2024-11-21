@@ -17,7 +17,7 @@ CREATE TABLE `goods`(
 
 CREATE TABLE `user`(
   `user_id` int NOT NULL AUTO_INCREMENT,
-  `user_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `gender` ENUM('男', '女') NOT NULL,
   `age` int DEFAULT NULL,
   PRIMARY KEY(`user_id`)
