@@ -29,3 +29,26 @@ if __name__ == '__main__':
     # # 查询用户信息
     # # print(sql.queryUserInfo())
     # print(sql.queryUserInfo(gender="男"))
+
+    # # 新增商店
+    # print(sql.addShop(("潮流服饰", "潮流服饰")))
+
+    # # 修改商店信息
+    # print(sql.editShopInfo(6, "99999", "66666"))
+
+    # # 删除商店
+    # sql.delShop(2)
+
+    # # 商品添加
+    # sql.addGood(("6666", "9999", 6.66, 9))
+
+    # # 商品修改
+    # sql.editGoodInfo(1, name="669966", goodType="1651")
+
+    # # 商品删除
+    # sql.delGood(1)
+
+    # # 商店查询
+    # print(sql.store_dict)
+
+

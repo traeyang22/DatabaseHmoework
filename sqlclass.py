@@ -58,32 +58,22 @@ class DianshangDatabase(Database):
     def __init__(self, database_name):
         super().__init__(database_name)
         # 定义变量user_dict，用于存储用户信息
-        # {id: (name, gender, age)}
+        # {id: {'storeName': str, 'storeType': str, 'goodsList': []}
         self.user_dict = self.queryUserInfo()
+        self.store_dict = self.queryShopInfo()
 
     # 订单相关操作，包括添加订单、更新订单状态、完成订单、查询订单、退单等
     def addOrder(self, order):
         # 向订单表中添加订单信息
-        if isinstance(order, tuple) and len(order) == 5:
-            print(f"CALL add_order{order};")
-            self.cursor.execute(f"CALL add_order{order};")
-            return self.cursor.fetchone()
-        return ("Error: Invalid order format.",)
+        pass
 
     def editOrderStatusFunc(self, order):
         # 创建一个sql函数，用于更新订单发货状态
-        if isinstance(order, tuple) and len(order) == 2:
-            print(f"CALL edit_order{order};")
-            self.cursor.execute(f"CALL edit_order{order};")
-            return self.cursor.fetchone()
-        return ("Error: Invalid order format.",)
+        pass
 
     def finishOrderFunc(self, orderID: int):
         # 创建一个sql函数，用于更新订单完成状态
-        print(f"CALL finish_order({orderID});")
-        self.cursor.execute(f"CALL finish_order({orderID});")
-        return self.cursor.fetchone()
-        return ("Error: Invalid order format.",)
+        pass
 
     def queryOrderFunc(self, orderID):
         # 创建一个sql函数，用于查询订单信息
@@ -94,44 +84,86 @@ class DianshangDatabase(Database):
         pass
 
 
-    # 商店相关操作，包括添加商店、更新商店信息、查询商店信息等
-    def addShop(self, shop):
+    # 商店相关操作，包括添加商店、更新商店信息、删除、查询商店信息等
+    def addShop(self, shop: tuple[2]):
         # 向商店表中添加商店信息
-        pass
+        sql = "CALL add_store(%s, %s)"
+        self.cursor.execute(sql, shop)
+        res = self.cursor.fetchone()
+        print(res)
+        store_id = res[0].split(" ")[-1]
+        return store_id
 
-    def editShopInfoFunc(self, shop):
+    def delShop(self, shop: int):
+        # 向商店表中删除商店信息
+        sql =f"DELETE FROM store WHERE store_id=%s;"
+        self.cursor.execute(sql, (shop,))
+        self.dbconn.commit()
+        print(f"delete shop: {shop}")
+
+    def editShopInfo(self, shop: int, name=None, shopType=None):
         # 创建一个sql函数，用于更新商店信息
-        pass
+        if name or shopType:
+            sql = "CALL editStoreInfo(%s, %s, %s)"
+            self.cursor.execute(sql, (shop, name, shopType))
+            res = self.cursor.fetchone()
+            # print(res)
+            return res[0]
+        return "Nothing to update."
 
-    def queryShopInfoFunc(self, shopID):
-        # 创建一个sql函数，用于查询商店信息
-        pass
-
+    def queryShopInfo(self):
+        # 查询实现：查询所有商店信息存入字典，在py端进行处理后返回给用户
+        # 该函数为更新商店字典
+        self.cursor.execute("SELECT * FROM store")
+        res = self.cursor.fetchall()
+        # print(res)
+        self.store_dict = {store[0]: {"storeName": store[1], "storeType": store[2], "goodsList": self.__queryGoodsInfo(int(store[0]))} for store in res}
+        return self.store_dict
 
     # 商品相关操作，包括添加商品、更新商品信息、查询商品信息等
-    def addGoods(self, goods):
+    def addGood(self, good: tuple[4]):
         # 向商品表中添加商品信息
-        pass
+        sql = "CALL add_good(%s, %s, %s, %s)"
+        self.cursor.execute(sql, good)
+        res = self.cursor.fetchone()
+        print(res)
+        good_id = res[0].split(" ")[-1]
+        return good_id
 
-    def editGoodsInfoFunc(self, goods):
+    def editGoodInfo(self, good: int, name=None, goodType=None, price=None):
         # 创建一个sql函数，用于更新商品信息
-        pass
+        if name or goodType or price:
+            sql = "CALL edit_good_info(%s, %s, %s, %s)"
+            self.cursor.execute(sql, (good, name, goodType, price))
+            res = self.cursor.fetchone()
+            print(res)
+            return res[0]
+        return "Nothing to update."
 
-    def queryGoodsInfoFunc(self, goodsID):
-        # 创建一个sql函数，用于查询商品信息
-        pass
+    def delGood(self, good: int):
+        # 向商品表中删除商品信息
+        sql =f"DELETE FROM goods WHERE goods_id=%s;"
+        self.cursor.execute(sql, (good,))
+        self.dbconn.commit()
+        print(f"delete good: {good}")
+
+
+    def __queryGoodsInfo(self, storeId: int):
+        # 查询商品信息
+        sql = "SELECT goods_id, goods_name, category, price FROM goods WHERE store_id=%s"
+        self.cursor.execute(sql, (storeId,))
+        res = self.cursor.fetchall()
+        return res
 
 
     # 用户相关操作，包括添加用户、删除用户、更新用户信息、查询用户信息等
-    def addUser(self, user: tuple):
-        user_id = 0
+    def addUser(self, user: tuple[3]):
         # 向用户表中添加用户信息
-        if len(user) == 3:
-            sql = "CALL add_user(%s, %s, %s)"
-            self.cursor.execute(sql, user)
-            res = self.cursor.fetchone()
-            print(res)
-            user_id = res[0].split(" ")[-1]
+        sql = "CALL add_user(%s, %s, %s)"
+        self.cursor.execute(sql, user)
+        res = self.cursor.fetchone()
+        print(res)
+        user_id = res[0].split(" ")[-1]
         return user_id
 
     def delUser(self, user: int):
@@ -142,7 +174,7 @@ class DianshangDatabase(Database):
         print(f"delete user: {user}")
 
 
-    def editUserInfo(self, user_id, name=None, gender=None, age=None):
+    def editUserInfo(self, user_id: int, name=None, gender=None, age=None):
         # 向用户表中更新用户信息
         if name or gender or age:
             sql=f"CALL editUserInfo(%s, %s, %s, %s)"
