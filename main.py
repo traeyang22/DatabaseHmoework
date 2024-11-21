@@ -18,37 +18,48 @@ if __name__ == '__main__':
     # username = "test"
     # usergender = "男"
     # userage = 20
-    # print(sql.addUser((username, usergender, userage)))
-
+    # print(sql.addUser([username, usergender, userage]))
+    #
     # # 删除用户
     # sql.delUser(2)
-
+    #
     # # 修改用户信息
     # print(sql.editUserInfo(3, name="test66"))
-
+    # print(sql.store_dict)
+    #
     # # 查询用户信息
     # # print(sql.queryUserInfo())
     # print(sql.queryUserInfo(gender="男"))
-
+    #
+    # print(sql.store_dict)
+    # # breakpoint()
     # # 新增商店
-    # print(sql.addShop(("潮流服饰", "潮流服饰")))
-
+    # print(sql.addShop(["潮流服饰", "潮流服饰"]))
+    #
+    # print(sql.store_dict)
+    #
     # # 修改商店信息
     # print(sql.editShopInfo(6, "99999", "66666"))
 
+    # print(sql.store_dict)
     # # 删除商店
-    # sql.delShop(2)
-
-    # # 商品添加
-    # sql.addGood(("6666", "9999", 6.66, 9))
-
-    # # 商品修改
-    # sql.editGoodInfo(1, name="669966", goodType="1651")
-
-    # # 商品删除
-    # sql.delGood(1)
-
-    # # 商店查询
+    # sql.delShop(4)
     # print(sql.store_dict)
 
+    # # 商品添加
+    # sql.addGood(["6666", "9999", 6.66, 9])
+    #
+    # # 商品修改
+    # sql.editGoodInfo(1, name="669966", goodType="1651")
+    # print(sql.store_dict)
+    #
+    # # 商品删除
+    # sql.delGood(1)
+    #
+    # # 商店查询
+    # # print(sql.store_dict)
+    # print(sql.queryShopInfo(shopType="家居用品"))
 
+    # print(sql.store_dict)
+    # # 商店商品查询
+    # print(sql.queryGoodInfo(good_id=16))

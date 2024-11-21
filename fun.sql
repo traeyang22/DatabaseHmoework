@@ -142,6 +142,33 @@ DELIMITER ;
 
 
 DELIMITER $$
+-- 删除商店函数
+-- 传入storeID参数
+CREATE PROCEDURE del_store(
+    IN storeID INT
+)
+
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK; -- 回滚事务
+        SELECT CONCAT('delete store failed. store ide: ', storeID, ' caused an error.') AS result;
+    END;
+
+    START TRANSACTION;
+
+    DELETE FROM store WHERE store_id = storeID;
+    DELETE FROM goods WHERE store_id = storeID;
+
+    COMMIT;
+
+    SELECT CONCAT('Delete store successfully.  store ID: ', storeID) AS result;
+END$$
+DELIMITER ;
+
+
+
+DELIMITER $$
 -- 修改商店名字、商店类型
 -- 传入storeId, storeName, storeType参数
 CREATE PROCEDURE editStoreInfo(

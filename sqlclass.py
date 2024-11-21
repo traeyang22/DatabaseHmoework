@@ -51,6 +51,17 @@ class Database:
         if self.dbconn is not None:
             self.dbconn.close()
 
+def auto_query(query_method_name):
+    def decorator(method):
+        def wrapper(self, *args, **kwargs):
+            result = method(self, *args, **kwargs)
+            # 获取查询方法并调用
+            query_method = getattr(self, query_method_name)
+            query_method()
+            return result
+        return wrapper
+    return decorator
+
 class DianshangDatabase(Database):
     # 电商数据库类，继承自Database类
     # 这里主要实现电商数据库相关的操作，如添加订单、更新订单状态、完成订单等
@@ -60,7 +71,7 @@ class DianshangDatabase(Database):
         # 定义变量user_dict，用于存储用户信息
         # {id: {'storeName': str, 'storeType': str, 'goodsList': []}
         self.user_dict = self.queryUserInfo()
-        self.store_dict = self.queryShopInfo()
+        self.store_dict = self.updateShopInfo()
 
     # 订单相关操作，包括添加订单、更新订单状态、完成订单、查询订单、退单等
     def addOrder(self, order):
@@ -85,61 +96,91 @@ class DianshangDatabase(Database):
 
 
     # 商店相关操作，包括添加商店、更新商店信息、删除、查询商店信息等
-    def addShop(self, shop: tuple[2]):
+    @auto_query("updateShopInfo")
+    def addShop(self, shop: list[2]):
         # 向商店表中添加商店信息
-        sql = "CALL add_store(%s, %s)"
-        self.cursor.execute(sql, shop)
-        res = self.cursor.fetchone()
-        print(res)
-        store_id = res[0].split(" ")[-1]
+        self.cursor.callproc("add_store", shop)
+        res = self.cursor.stored_results()
+        store_id =None
+        for r in res:
+            r = r.fetchone()[0]
+            if "successfully" in r:
+                store_id = r.split(" ")[-1]
         return store_id
 
+    @auto_query("updateShopInfo")
     def delShop(self, shop: int):
         # 向商店表中删除商店信息
-        sql =f"DELETE FROM store WHERE store_id=%s;"
-        self.cursor.execute(sql, (shop,))
-        self.dbconn.commit()
-        print(f"delete shop: {shop}")
+        self.cursor.callproc("del_store", [shop])
+        res = self.cursor.stored_results()
+        r = None
+        for r in res:
+            r = r.fetchone()[0]
+        return r
 
+    @auto_query("updateShopInfo")
     def editShopInfo(self, shop: int, name=None, shopType=None):
         # 创建一个sql函数，用于更新商店信息
         if name or shopType:
-            sql = "CALL editStoreInfo(%s, %s, %s)"
-            self.cursor.execute(sql, (shop, name, shopType))
-            res = self.cursor.fetchone()
-            # print(res)
-            return res[0]
+            self.cursor.callproc("editStoreInfo", [shop, name, shopType])
+            res = self.cursor.stored_results()
+            r = None
+            for r in res:
+                r = r.fetchone()[0]
+            return r
         return "Nothing to update."
 
-    def queryShopInfo(self):
+    def updateShopInfo(self):
         # 查询实现：查询所有商店信息存入字典，在py端进行处理后返回给用户
         # 该函数为更新商店字典
         self.cursor.execute("SELECT * FROM store")
         res = self.cursor.fetchall()
         # print(res)
-        self.store_dict = {store[0]: {"storeName": store[1], "storeType": store[2], "goodsList": self.__queryGoodsInfo(int(store[0]))} for store in res}
+        self.store_dict = {store[0]: {"storeName": store[1], "storeType": store[2], "goodsList": self.__updateGoodsInfo(int(store[0]))} for store in res}
         return self.store_dict
 
+    def queryShopInfo(self, store_id=None, name=None, shopType=None):
+        store_id = int(store_id) if store_id is not None else None
+        # 查询商店信息
+        resList = []
+        if store_id or name or shopType:
+            self.updateShopInfo()
+            for key, value in self.store_dict.items():
+                if store_id is not None and key != store_id:
+                    continue
+                if name is not None and value["storeName"] != name:
+                    continue
+                if shopType is not None and value["storeType"] != shopType:
+                    continue
+                resList.append((key, value["storeName"], value["storeType"]))
+        return resList
+
     # 商品相关操作，包括添加商品、更新商品信息、查询商品信息等
-    def addGood(self, good: tuple[4]):
+    @auto_query("updateShopInfo")
+    def addGood(self, good: list[4]):
         # 向商品表中添加商品信息
-        sql = "CALL add_good(%s, %s, %s, %s)"
-        self.cursor.execute(sql, good)
-        res = self.cursor.fetchone()
-        print(res)
-        good_id = res[0].split(" ")[-1]
+        self.cursor.callproc("add_good", good)
+        res = self.cursor.stored_results()
+        good_id = None
+        for r in res:
+            r = r.fetchone()[0]
+            if "successfully" in r:
+                good_id = r.split(" ")[-1]
         return good_id
 
+    @auto_query("updateShopInfo")
     def editGoodInfo(self, good: int, name=None, goodType=None, price=None):
         # 创建一个sql函数，用于更新商品信息
         if name or goodType or price:
-            sql = "CALL edit_good_info(%s, %s, %s, %s)"
-            self.cursor.execute(sql, (good, name, goodType, price))
-            res = self.cursor.fetchone()
-            print(res)
-            return res[0]
+            self.cursor.callproc("edit_good_info", [good, name, goodType, price])
+            res = self.cursor.stored_results()
+            r = None
+            for r in res:
+                r = r.fetchone()[0]
+            return r
         return "Nothing to update."
 
+    @auto_query("updateShopInfo")
     def delGood(self, good: int):
         # 向商品表中删除商品信息
         sql =f"DELETE FROM goods WHERE goods_id=%s;"
@@ -148,24 +189,48 @@ class DianshangDatabase(Database):
         print(f"delete good: {good}")
 
 
-    def __queryGoodsInfo(self, storeId: int):
+    def __updateGoodsInfo(self, storeId: int):
         # 查询商品信息
         sql = "SELECT goods_id, goods_name, category, price FROM goods WHERE store_id=%s"
         self.cursor.execute(sql, (storeId,))
         res = self.cursor.fetchall()
         return res
 
+    def queryGoodInfo(self, good_id=None, name=None, category=None, price=None):
+        good_id = int(good_id) if good_id is not None else None
+        price = float(price) if price is not None else None
+        # 查询商品信息
+        resList = []
+        if good_id or name or category or price:
+            self.updateShopInfo()
+            for key, value in self.store_dict.items():
+                for good in value["goodsList"]:
+                    if good_id is not None and good[0] != good_id:
+                        continue
+                    if name is not None and good[1] != name:
+                        continue
+                    if category is not None and good[2] != category:
+                        continue
+                    if price is not None and good[3] != price:
+                        print(good[3], price, type(good[3]), type(price))
+                        continue
+                    resList.append(good)
+        return resList
 
     # 用户相关操作，包括添加用户、删除用户、更新用户信息、查询用户信息等
-    def addUser(self, user: tuple[3]):
+    @auto_query("updataUserDict")
+    def addUser(self, user: list[3]):
         # 向用户表中添加用户信息
-        sql = "CALL add_user(%s, %s, %s)"
-        self.cursor.execute(sql, user)
-        res = self.cursor.fetchone()
-        print(res)
-        user_id = res[0].split(" ")[-1]
+        self.cursor.callproc("add_user", user)
+        res = self.cursor.stored_results()
+        user_id = None
+        for r in res:
+            r = r.fetchone()[0]
+            if "successfully" in r:
+                user_id = r.split(" ")[-1]
         return user_id
 
+    @auto_query("updataUserDict")
     def delUser(self, user: int):
         # 向用户表中删除用户信息
         sql =f"DELETE FROM user WHERE user_id=%s;"
@@ -173,19 +238,20 @@ class DianshangDatabase(Database):
         self.dbconn.commit()
         print(f"delete user: {user}")
 
-
+    @auto_query("updataUserDict")
     def editUserInfo(self, user_id: int, name=None, gender=None, age=None):
         # 向用户表中更新用户信息
         if name or gender or age:
-            sql=f"CALL editUserInfo(%s, %s, %s, %s)"
-            self.cursor.execute(sql, (user_id, name, gender, age))
-            res = self.cursor.fetchone()
-            # print(res)
-            return res[0]
+            self.cursor.callproc("editUserInfo", [user_id, name, gender, age])
+            res = self.cursor.stored_results()
+            r = None
+            for r in res:
+                r = r.fetchone()[0]
+            return r
         return "Nothing to update."
 
 
-    def __updataUserDict(self):
+    def updataUserDict(self):
         # 查询实现：查询所有用户信息存入字典，在py端进行处理后返回给用户
         # 该函数为更新用户字典
         self.cursor.execute("SELECT * FROM user")
@@ -194,10 +260,12 @@ class DianshangDatabase(Database):
         return self.user_dict
 
     def queryUserInfo(self, user_id=None, name=None, gender=None, age=None):
+        user_id = int(user_id) if user_id is not None else None
+        age = int(age) if age is not None else None
         # 查询用户信息
         resList = []
         if user_id or name or gender or age:
-            self.__updataUserDict()
+            self.updataUserDict()
             for key, value in self.user_dict.items():
                 if user_id is not None and key != user_id:
                     continue
