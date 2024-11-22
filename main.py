@@ -1,4 +1,5 @@
 import re
+from pprint import pprint
 
 from sqlclass import DianshangDatabase
 
@@ -18,7 +19,7 @@ if __name__ == '__main__':
     # username = "test"
     # usergender = "男"
     # userage = 20
-    # print(sql.addUser([username, usergender, userage]))
+    # print(sql.addUser([username, usergender, userage, 1]))
     #
     # # 删除用户
     # sql.delUser(2)
@@ -63,3 +64,16 @@ if __name__ == '__main__':
     # print(sql.store_dict)
     # # 商店商品查询
     # print(sql.queryGoodInfo(good_id=16))
+
+    # # 订单添加
+    # print(sql.addOrder(1, 1, [(3, 5), (2, 10), (4, 3)]))
+
+    # # 订单修改
+    # sql.editOrderStatus(9, 10, 4)
+    #
+    # # 订单查询
+    # print(sql.queryOrder())
+
+    print(sql.user_dict)
+    print(sql.store_dict)
+    pprint(sql.order_dict)

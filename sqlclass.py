@@ -24,6 +24,7 @@ class Database:
 
         # 创建游标
         self.cursor = self.dbconn.cursor()
+        self.dbconn.start_transaction()
         # 定义变量table_list和table_dict，分别存储数据库中的表名和字段信息
         self.table_list = self.updateTables()
         self.table_dict = {table[0]: [] for table in self.table_list}
@@ -69,31 +70,80 @@ class DianshangDatabase(Database):
     def __init__(self, database_name):
         super().__init__(database_name)
         # 定义变量user_dict，用于存储用户信息
-        # {id: {'storeName': str, 'storeType': str, 'goodsList': []}
-        self.user_dict = self.queryUserInfo()
+        # {id: (name, sex, age)}
+        self.user_dict = self.updataUserDict()
+        # 定义变量store_dict，用于存储商店信息
+        # {id: {'storeName': str,'storeType': str, 'goodsList': []}
         self.store_dict = self.updateShopInfo()
+        # 定义变量order_dict，用于存储订单信息
+        # {order_id: {'user_id': int, 'pay_type': str, 'total_consumption': float, 'goodsList': []}
+        self.order_dict = self.updateOrder()
 
-    # 订单相关操作，包括添加订单、更新订单状态、完成订单、查询订单、退单等
-    def addOrder(self, order):
-        # 向订单表中添加订单信息
-        pass
+    def getPayType(self, id: int):
+        # 获取用户的支付方式
+        pay_dict = {1: "支付宝", 2: "微信", 3: "银行卡"}
+        return pay_dict[id]
 
-    def editOrderStatusFunc(self, order):
-        # 创建一个sql函数，用于更新订单发货状态
-        pass
+    # 订单相关操作，包括添加订单、获取订单状态、更新订单状态等
+    @auto_query("updateOrder")
+    def addOrder(self, user_id: int, pay_type: int, good_list: list[tuple]):
+        # 向订单表中添加订单信息, 传入的good_list为[(商品id, 数量), (商品id, 数量),...]
+        self.dbconn.commit()
+        self.dbconn.start_transaction()
+        try:
+            sql = "INSERT INTO goods_order (user_id, pay_type, total_consumption) VALUES (%s, %s, %s)"
+            self.cursor.execute(sql, (user_id, self.getPayType(pay_type), 0))
+            order_id = self.cursor.lastrowid
+            # print(f"add order: {order_id}")
+            for good in good_list:
+                self.cursor.callproc("add_good", [order_id, good[0], good[1]])
+                res = self.cursor.stored_results()
+                for r in res:
+                    if "failed" in r.fetchone()[0]:
+                        raise Exception("Failed to add good to order.")
+            self.dbconn.commit()
+            return order_id
+        except:
+            self.dbconn.rollback()
+            print("Error: Failed to add order.")
+            return None
 
-    def finishOrderFunc(self, orderID: int):
-        # 创建一个sql函数，用于更新订单完成状态
-        pass
+    def getOrderStatus(self, num: int):
+        # 获取订单状态
+        status_dict = {1: '已付款', 2: '已发货', 3: '已送达', 4: '已取消'}
+        return status_dict[num]
 
-    def queryOrderFunc(self, orderID):
+    @auto_query("updateOrder")
+    def editOrderStatus(self, order: int, good: int, status: int, tracking_num: int=None):
+        # 创建一个sql函数，用于更新订单状态
+        if status not in [1, 2, 3, 4] or tracking_num is  None and status == 2:
+            print("Error: Invalid status.")
+            return False
+        status = self.getOrderStatus(status)
+        sql = "UPDATE order_details SET order_status=%s"
+        sql += ", tracking_num=%s" if tracking_num is not None else ""
+        sql += " WHERE goods_order_id=%s AND goods_id=%s"
+        params = (status, tracking_num, order, good) if tracking_num is not None else (status, order, good)
+        self.cursor.execute(sql, params)
+        self.dbconn.commit()
+        return True
+
+    def updateOrder(self):
         # 创建一个sql函数，用于查询订单信息
-        pass
+        # 该函数为查询订单信息，并将结果存入字典，在py端进行处理后返回给用户
+        self.cursor.execute("SELECT * FROM goods_order")
+        res = self.cursor.fetchall()
+        self.order_dict = {order[0]: {"user_id": order[1], "pay_type": order[2], "total_consumption": order[3], "good_list": []} for order in res}
+        self.updateOrderDetails()
+        return self.order_dict
 
-    def refundOrderFunc(self, orderID):
-        # 创建一个sql函数，用于退单
-        pass
-
+    def updateOrderDetails(self):
+        # 更新订单详情表
+        self.cursor.execute("SELECT * FROM order_details")
+        res = self.cursor.fetchall()
+        for detail in res:
+            self.order_dict[detail[1]]["good_list"].append((detail[2], detail[3], detail[4], detail[5]))
+        return self.order_dict
 
     # 商店相关操作，包括添加商店、更新商店信息、删除、查询商店信息等
     @auto_query("updateShopInfo")

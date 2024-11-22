@@ -332,6 +332,67 @@ END$$
 DELIMITER ;
 
 
+
+-- 订单类
+DELIMITER $$
+-- 创建订单详情函数
+-- 传入orderId、goodId、goodNum参数
+CREATE PROCEDURE add_good(
+  IN `orderId` INT,
+  IN `goodId` INT,
+  IN `goodNum` INT
+)
+
+BEGIN
+    SET @goodPrice = NULL;
+    SET @goodStatus = '已付款';
+
+    SELECT price INTO @goodPrice FROM goods WHERE goods_id = goodId;
+
+    INSERT INTO order_details (goods_order_id, goods_id, price, quantity, order_status)
+    VALUES (orderId, goodId, @goodPrice, goodNum, @goodStatus);';
+
+    SELECT CONCAT('Add good successfully.') AS result;
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
+-- 触发器。当订单详情添加数据时候，订单总价会自动更新
+CREATE TRIGGER update_total_quantity_after_insert
+AFTER INSERT ON order_details
+FOR EACH ROW
+BEGIN
+    UPDATE goods_order
+    SET total_consumption = total_consumption + NEW.price * NEW.quantity
+    WHERE goods_order_id = NEW.goods_order_id;
+END$$
+DELIMITER ;
+
+
+DELIMITER $$
+-- 触发器。当订单状态更新为已取消或从已取消状态修改为其他状态时，订单总价会自动更新
+CREATE TRIGGER update_total_quantity_after_status_update
+AFTER UPDATE ON order_details
+FOR EACH ROW
+BEGIN
+    -- 订单状态更新为已取消时候，订单总价减少
+    IF NEW.order_status = '已取消' AND OLD.order_status <> '已取消' THEN
+        UPDATE goods_order
+        SET total_consumption = total_consumption - NEW.price * NEW.quantity
+        WHERE goods_order_id = NEW.goods_order_id;
+    END IF;
+
+    -- 订单状态从已取消状态修改为其他状态时候，订单总价增加
+    IF NEW.order_status <> '已取消' AND OLD.order_status = '已取消' THEN
+        UPDATE goods_order
+        SET total_consumption = total_consumption + NEW.price * NEW.quantity
+        WHERE goods_order_id = NEW.goods_order_id;
+    END IF;
+END$$
+DELIMITER ;
+
+
 /*
 -- 删除函数
 DROP PROCEDURE add_user;
