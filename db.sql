@@ -86,16 +86,16 @@ INSERT INTO `goods` (`goods_name`, `category`, `price`, `store_id`) VALUES
 
 -- 插入订单信息
 INSERT INTO `goods_order` (`user_id`, `pay_type`, `total_consumption`) VALUES
-(1, '信用卡', 5999.98),
+(1, '银行卡', 5999.98),
 (2, '支付宝', 1999.95),
 (3, '微信支付', 990.80),
-(4, '信用卡', 2399.95),
+(4, '银行卡', 2399.95),
 (5, '支付宝', 1799.95),
 (6, '微信支付', 2899.95),
-(7, '信用卡', 2499.97),
+(7, '银行卡', 2499.97),
 (8, '支付宝', 1799.94),
 (9, '微信支付', 2900.90),
-(10, '信用卡', 2499.97);
+(10, '银行卡', 2499.97);
 
 -- 插入订单详细信息
 INSERT INTO `order_details` (`goods_order_id`, `goods_id`, `price`, `quantity`, `order_status`, `tracking_num`) VALUES

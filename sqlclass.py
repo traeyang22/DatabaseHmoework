@@ -1,4 +1,6 @@
 import mysql.connector
+import subprocess
+import time
 
 class Database:
     # 数据库类
@@ -56,6 +58,8 @@ def auto_query(query_method_name):
     def decorator(method):
         def wrapper(self, *args, **kwargs):
             result = method(self, *args, **kwargs)
+            # # 备份数据库
+            # self.backup()
             # 获取查询方法并调用
             query_method = getattr(self, query_method_name)
             query_method()
@@ -79,9 +83,23 @@ class DianshangDatabase(Database):
         # {order_id: {'user_id': int, 'pay_type': str, 'total_consumption': float, 'goodsList': []}
         self.order_dict = self.updateOrder()
 
+    def backup(self):
+        # 获取当前时间并格式化为合法的文件名
+        backup_file = time.strftime('%Y-%m-%d_%H-%M-%S') + '.sql'
+
+        # 使用mysqldump命令进行备份
+        command = f"mysqldump -u root -p --all-databases > {backup_file}"
+
+        try:
+            # 调用subprocess执行命令
+            subprocess.run(command, shell=True, check=True)
+            print(f"Backup completed successfully. File saved as {backup_file}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error: Backup failed. {e}")
+
     def getPayType(self, id: int):
         # 获取用户的支付方式
-        pay_dict = {1: "支付宝", 2: "微信", 3: "银行卡"}
+        pay_dict = {1: "支付宝", 2: "微信支付", 3: "银行卡"}
         return pay_dict[id]
 
     # 订单相关操作，包括添加订单、获取订单状态、更新订单状态等
@@ -96,7 +114,7 @@ class DianshangDatabase(Database):
             order_id = self.cursor.lastrowid
             # print(f"add order: {order_id}")
             for good in good_list:
-                self.cursor.callproc("add_good", [order_id, good[0], good[1]])
+                self.cursor.callproc("add_order_good", [order_id, good[0], good[1]])
                 res = self.cursor.stored_results()
                 for r in res:
                     if "failed" in r.fetchone()[0]:
@@ -128,12 +146,24 @@ class DianshangDatabase(Database):
         self.dbconn.commit()
         return True
 
+    @auto_query("updateOrder")
+    def delOrder(self, order: int):
+        # 删除订单
+        self.cursor.callproc("del_order", [order])
+        res = self.cursor.stored_results()
+        for r in res:
+            r = r.fetchone()[0]
+            print(r)
+            if "successfully" in r:
+                return True
+        return False
+
     def updateOrder(self):
         # 创建一个sql函数，用于查询订单信息
         # 该函数为查询订单信息，并将结果存入字典，在py端进行处理后返回给用户
         self.cursor.execute("SELECT * FROM goods_order")
         res = self.cursor.fetchall()
-        self.order_dict = {order[0]: {"user_id": order[1], "pay_type": order[2], "total_consumption": order[3], "good_list": []} for order in res}
+        self.order_dict = {order[0]: {"user_id": order[1], "pay_type": order[2], "total_consumption": order[3], "goodsList": []} for order in res}
         self.updateOrderDetails()
         return self.order_dict
 
@@ -142,8 +172,55 @@ class DianshangDatabase(Database):
         self.cursor.execute("SELECT * FROM order_details")
         res = self.cursor.fetchall()
         for detail in res:
-            self.order_dict[detail[1]]["good_list"].append((detail[2], detail[3], detail[4], detail[5]))
+            self.order_dict[detail[1]]["goodsList"].append((detail[2], detail[3], detail[4], detail[5], detail[6]))
         return self.order_dict
+
+    def queryOrderInfo(self, order_id=None, user_id=None, pay_type=None, total_consumption=None, max_total_consumption=None, min_total_consumption=None):
+        # 查询订单信息
+        resDict = {}
+        pay_type = self.getPayType(pay_type) if pay_type is not None else None
+        if order_id or user_id or pay_type or total_consumption or max_total_consumption or min_total_consumption:
+            self.updateOrder()
+            for key, value in self.order_dict.items():
+                if order_id is not None and key != order_id:
+                    continue
+                if user_id is not None and value["user_id"] != user_id:
+                    continue
+                if pay_type is not None and value["pay_type"] != pay_type:
+                    continue
+                if total_consumption is not None and value["total_consumption"] != total_consumption:
+                    continue
+                if max_total_consumption is not None and value["total_consumption"]  > max_total_consumption:
+                    continue
+                if min_total_consumption is not None and value["total_consumption"]  < min_total_consumption:
+                    continue
+                resDict[key] = value
+        return resDict
+
+    def queryOrderDetailInfo(self, order_id=None, good_id=None, order_status=None, tracking_num=None, price=None, max_price=None, min_price=None):
+         # 查询订单详情信息
+        resDict = {}
+        if order_id or good_id or order_status or tracking_num or price or max_price or min_price:
+            self.updateOrder()
+            for key, value in self.order_dict.items():
+                if order_id is not None and key != order_id:
+                    continue
+                for good in value["goodsList"]:
+                    if good_id is not None and good[0] != good_id:
+                        continue
+                    if order_status is not None and good[3] != order_status:
+                        continue
+                    if tracking_num is not None and good[4] != tracking_num:
+                        continue
+                    if price is not None and good[1] != price:
+                        continue
+                    if max_price is not None and good[1] > max_price:
+                        continue
+                    if min_price is not None and good[1] < min_price:
+                        continue
+                    resDict[key] = {"order_id": key, "user_id": value["user_id"], "pay_type": value["pay_type"], "total_consumption": value["total_consumption"], "goodsList": [(good[0], good[1], good[2], good[3], good[4])] }
+        return resDict
+
 
     # 商店相关操作，包括添加商店、更新商店信息、删除、查询商店信息等
     @auto_query("updateShopInfo")
@@ -192,7 +269,7 @@ class DianshangDatabase(Database):
     def queryShopInfo(self, store_id=None, name=None, shopType=None):
         store_id = int(store_id) if store_id is not None else None
         # 查询商店信息
-        resList = []
+        resDict = {}
         if store_id or name or shopType:
             self.updateShopInfo()
             for key, value in self.store_dict.items():
@@ -202,18 +279,20 @@ class DianshangDatabase(Database):
                     continue
                 if shopType is not None and value["storeType"] != shopType:
                     continue
-                resList.append((key, value["storeName"], value["storeType"]))
-        return resList
+                resDict[key] = value
+        return resDict
 
     # 商品相关操作，包括添加商品、更新商品信息、查询商品信息等
     @auto_query("updateShopInfo")
     def addGood(self, good: list[4]):
         # 向商品表中添加商品信息
+        print(good)
         self.cursor.callproc("add_good", good)
         res = self.cursor.stored_results()
         good_id = None
         for r in res:
             r = r.fetchone()[0]
+            print(r)
             if "successfully" in r:
                 good_id = r.split(" ")[-1]
         return good_id
@@ -246,15 +325,19 @@ class DianshangDatabase(Database):
         res = self.cursor.fetchall()
         return res
 
-    def queryGoodInfo(self, good_id=None, name=None, category=None, price=None):
+    def queryGoodInfo(self, good_id=None, name=None, category=None, price=None, store_id=None, max_price=None, min_price=None):
         good_id = int(good_id) if good_id is not None else None
+        store_id = int(store_id) if store_id is not None else None
         price = float(price) if price is not None else None
         # 查询商品信息
-        resList = []
-        if good_id or name or category or price:
+        print(f"good_id: {good_id}, name: {name}, category: {category}, price: {price}, store_id: {store_id}, max_price: {max_price}, min_price: {min_price}")
+        resDict = {}
+        if store_id or good_id or name or category or price or max_price or min_price:
             self.updateShopInfo()
             for key, value in self.store_dict.items():
                 for good in value["goodsList"]:
+                    if store_id is not None and key != store_id:
+                        continue
                     if good_id is not None and good[0] != good_id:
                         continue
                     if name is not None and good[1] != name:
@@ -262,10 +345,13 @@ class DianshangDatabase(Database):
                     if category is not None and good[2] != category:
                         continue
                     if price is not None and good[3] != price:
-                        print(good[3], price, type(good[3]), type(price))
                         continue
-                    resList.append(good)
-        return resList
+                    if max_price is not None and good[3] > max_price:
+                        continue
+                    if min_price is not None and good[3] < min_price:
+                        continue
+                    resDict[good[0]] = {"goodId": good[0], "goodName": good[1], "goodType": good[2], "price": good[3]}
+        return resDict
 
     # 用户相关操作，包括添加用户、删除用户、更新用户信息、查询用户信息等
     @auto_query("updataUserDict")
@@ -306,27 +392,27 @@ class DianshangDatabase(Database):
         # 该函数为更新用户字典
         self.cursor.execute("SELECT * FROM user")
         res = self.cursor.fetchall()
-        self.user_dict = {user[0]: user[1:] for user in res}
+        self.user_dict = {user[0]: {"name": user[1], "sex": user[2], "age": user[3]} for user in res}
         return self.user_dict
 
     def queryUserInfo(self, user_id=None, name=None, gender=None, age=None):
         user_id = int(user_id) if user_id is not None else None
         age = int(age) if age is not None else None
         # 查询用户信息
-        resList = []
+        resDict = {}
         if user_id or name or gender or age:
             self.updataUserDict()
             for key, value in self.user_dict.items():
                 if user_id is not None and key != user_id:
                     continue
-                if name is not None and value[0] != name:
+                if name is not None and value["name"] != name:
                     continue
-                if gender is not None and value[1] != gender:
+                if gender is not None and value["sex"] != gender:
                     continue
-                if age is not None and value[2] != age:
+                if age is not None and value["age"] != age:
                     continue
-                resList.append((key,) + value)
-        return resList
+                resDict[key] = value
+        return resDict
 
 
 

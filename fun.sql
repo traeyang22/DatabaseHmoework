@@ -337,7 +337,7 @@ DELIMITER ;
 DELIMITER $$
 -- 创建订单详情函数
 -- 传入orderId、goodId、goodNum参数
-CREATE PROCEDURE add_good(
+CREATE PROCEDURE add_order_good(
   IN `orderId` INT,
   IN `goodId` INT,
   IN `goodNum` INT
@@ -350,9 +350,34 @@ BEGIN
     SELECT price INTO @goodPrice FROM goods WHERE goods_id = goodId;
 
     INSERT INTO order_details (goods_order_id, goods_id, price, quantity, order_status)
-    VALUES (orderId, goodId, @goodPrice, goodNum, @goodStatus);';
+    VALUES (orderId, goodId, @goodPrice, goodNum, @goodStatus);
 
     SELECT CONCAT('Add good successfully.') AS result;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+-- 删除订单函数
+-- 传入OrderId参数
+CREATE PROCEDURE del_order(
+    `OrderId` INT
+)
+
+BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK; -- 回滚事务
+        SELECT CONCAT('delete order failed. order id: ',OrderId, ' caused an error.') AS result;
+    END;
+
+    START TRANSACTION;
+
+    DELETE FROM order_details WHERE goods_order_id = OrderId;
+    DELETE FROM goods_order WHERE goods_order_id = OrderId;
+
+    COMMIT;
+
+    SELECT CONCAT('delete order successfully. order ID: ', OrderId, '.') AS result;
 END$$
 DELIMITER ;
 
