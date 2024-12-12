@@ -12,10 +12,10 @@ class Database:
         self.dbconn = None  # 初始化dbconn变量，防止无法连接时候执行__del__方法报错
         try:
             self.dbconn = mysql.connector.connect(
-                host="192.168.196.153",  # 数据库主机地址
+                host="127.0.0.1",  # 数据库主机地址
                 port="3306",  # 数据库端口号
                 user="root",  # 数据库用户名
-                passwd="123456",  # 数据库密码
+                passwd="mysql",  # 数据库密码
                 database=self.db,
                 # auth_plugin="mysql_native_password"
             )
