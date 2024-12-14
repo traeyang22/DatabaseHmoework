@@ -1,8 +1,10 @@
 import re
 import os
 import tkinter as tk
-from tkinter import ttk, mainloop
+from tkinter import ttk, mainloop,messagebox
 from pprint import pprint
+import subprocess
+import time
 
 from sqlclass import DianshangDatabase
 
@@ -15,9 +17,6 @@ def checkUsername(username):
         return False
     return True
 
-def test():
-    print("test")
-
 # 创建菜单栏
 def createMenu():
     # 菜单栏
@@ -27,7 +26,7 @@ def createMenu():
     menuTables.add_command(label="商店表", command=lambda: showData(sql.store_dict, ["id", "name", "shopType"], True))
     # menuTables.add_command(label="商店表", command=lambda: showData(sql.store_dict, ["id", "name", "shopType", "goodsList"], True))
     menuTables.add_command(label="商品表", command=lambda: showData(sql.store_dict, ["shopId", "goodId", "name", "goodType", "price"], False))
-    menuTables.add_command(label="订单表", command=lambda: showData(sql.order_dict, ["id", "userId", "pay", "total"], True))
+    menuTables.add_command(label="订单表", command=lambda: showData(sql.order_dict, ["id", "userId", "p+ay", "total"], True))
     menuTables.add_command(label="订单详情表", command=lambda: showData(sql.order_dict, ["orderId", "goodId","price", "number", "status", "trackingNumber"], False))
 
     # menuQuery = tk.Menu(top, tearoff=0, font=("Arial", 10))
@@ -67,9 +66,8 @@ def createMenu():
 
     menubackup = tk.Menu(top, tearoff=0, font=("Arial", 10))
     top.add_cascade(label="备份", menu=menubackup)
-    menubackup.add_command(label="AAAA", command=test)
-    menubackup.add_command(label="BBBB", command=test)
-    menubackup.add_command(label="CCCC", command=test)
+    menubackup.add_command(label="备份数据库", command=backup)
+    menubackup.add_command(label="退出", command=root.quit)
 
 def adjust_column_widths(tree):
     l = 0
@@ -96,6 +94,21 @@ def adjust_column_widths(tree):
     # 增加宽度使其能够固定总宽
     for c in range(len(tree['columns'])):
         tree.column(tree['columns'][c], width=lList[c] + l)
+
+def backup():
+    db_user = "root"  # 替换为你的用户名
+    db_password = "mysql"  # 替换为你的密码
+    db_name = "test"  # 替换为你的数据库名
+    backup_file = time.strftime('%Y-%m-%d_%H-%M-%S') + '.sql'  # 备份文件路径
+
+    command = f"mysqldump -u{db_user} -p{db_password} {db_name} > {backup_file}"
+
+    try:
+        # 执行备份命令
+        subprocess.run(command, shell=True, check=True)
+        messagebox.showinfo("成功", f"备份成功！文件保存为 {os.path.abspath(backup_file)}")
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("错误", f"备份失败！错误信息：{e}")
 
 def showData(data: dict, key: list, isSelf=True):
     # 清理之前的表格内容
@@ -558,7 +571,7 @@ if __name__ == '__main__':
     # frame_right = tk.Frame(root, width=300, height=600, bg='gray')
     # frame_right.pack(side='right', anchor='n', padx=10, pady=10)
 
-    mainloop()
+    root.mainloop()
 
     # print(sql.queryOrderInfo(user_id=1))
     # print(sql.queryOrderDetailInfo(good_id=1))

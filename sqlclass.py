@@ -83,19 +83,19 @@ class DianshangDatabase(Database):
         # {order_id: {'user_id': int, 'pay_type': str, 'total_consumption': float, 'goodsList': []}
         self.order_dict = self.updateOrder()
 
-    def backup(self):
-        # 获取当前时间并格式化为合法的文件名
-        backup_file = time.strftime('%Y-%m-%d_%H-%M-%S') + '.sql'
+    # def backup(self):
+    #     # 获取当前时间并格式化为合法的文件名
+    #     backup_file = time.strftime('%Y-%m-%d_%H-%M-%S') + '.sql'
 
-        # 使用mysqldump命令进行备份
-        command = f"mysqldump -u root -p --all-databases > {backup_file}"
+    #     # 使用mysqldump命令进行备份
+    #     command = f"mysqldump -u root -p --all-databases > {backup_file}"
 
-        try:
-            # 调用subprocess执行命令
-            subprocess.run(command, shell=True, check=True)
-            print(f"Backup completed successfully. File saved as {backup_file}")
-        except subprocess.CalledProcessError as e:
-            print(f"Error: Backup failed. {e}")
+    #     try:
+    #         # 调用subprocess执行命令
+    #         subprocess.run(command, shell=True, check=True)
+    #         print(f"Backup completed successfully. File saved as {backup_file}")
+    #     except subprocess.CalledProcessError as e:
+    #         print(f"Error: Backup failed. {e}")
 
     def getPayType(self, id: int):
         # 获取用户的支付方式
